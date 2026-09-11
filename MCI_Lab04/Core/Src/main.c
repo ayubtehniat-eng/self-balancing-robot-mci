@@ -15,15 +15,13 @@
   *
   ******************************************************************************
   */
-
+/* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "string.h"
-#include "stdarg.h"
-#include "stdio.h"
-/* USER CODE END Header */
-
-
+#include "usb_device.h"
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -49,11 +47,22 @@ I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
 
-UART_HandleTypeDef huart2;
+TIM_HandleTypeDef htim2;
 
-PCD_HandleTypeDef hpcd_USB_FS;
+UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+// // Task 4: LED counters
+uint32_t count_red = 0;
+uint32_t count_blue = 0;
+uint32_t count_green = 0;
+
+uint32_t ic_val1 = 0;      // First capture timestamp
+uint32_t ic_val2 = 0;      // Second capture timestamp
+uint32_t difference = 0;   // The period (in timer ticks)
+uint8_t is_first_capture = 1; // Flag to track step 1 vs step 2
+float frequency = 0.0;     // The result
+
 
 /* USER CODE END PV */
 
@@ -62,15 +71,48 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_SPI1_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_USB_PCD_Init(void);
+static void MX_TIM2_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void myPrintf(const char *fmt, ...){
+void delay_ms(uint32_t ms)
+{
+  __HAL_TIM_SET_COUNTER(&htim2, 0);
+  HAL_TIM_Base_Start(&htim2);
+  while (__HAL_TIM_GET_COUNTER(&htim2) < ms){}
+  HAL_TIM_Base_Stop(&htim2);
+}
+    uint32_t a = 0;
+    uint32_t b = 0;
+    uint32_t c = 0;
+
+  void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+
+    if (htim->Instance == TIM2) {
+      a++;
+      b++;
+      c++;
+    }
+    if(a>=500){
+      HAL_GPIO_TogglePin(GPIOE, LD3_Pin);
+      a=0;
+    }
+    if(b>=200){
+      HAL_GPIO_TogglePin(GPIOE, LD4_Pin);
+      b=0;
+    }
+    if(c>=100){
+      HAL_GPIO_TogglePin(GPIOE, LD7_Pin);
+      c=0;
+    }
+     
+ }
+
+ void myPrintf(const char *fmt, ...){
     char buffer[100];
     va_list args;
     va_start(args, fmt);
@@ -78,78 +120,51 @@ void myPrintf(const char *fmt, ...){
     va_end(args);
    
     uint8_t length = strlen(buffer);
-    HAL_UART_Transmit(&huart2, (uint8_t *)buffer, length, HAL_MAX_DELAY);
+    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, length, HAL_MAX_DELAY);
 
   }
 
-void verifyIdentity(int a, int b){
-  int LHS = (a+b)*(a+b);
-  int RHS = a*a + 2*a*b + b*b;
-  myPrintf("a = %d, b = %d\r\n", a, b);
-  myPrintf("LHS: (%d + %d)^2 = %d\r\n", a, b, LHS);
-  myPrintf("RHS: %d^2 + 2*%d*%d + %d^2 = %d\r\n", a, a, b, b, RHS);
-  if(LHS == RHS){
-    myPrintf("Identity verified: Yes\r\n");
-  } else {
-    myPrintf("Identity not verified: No\r\n");
-  }
-}
+//  uint32_t last_capture = 0, period = 0;
+//  uint32_t frequency = 0;
+//  void HAL_TIM_IC_CaptureCallback ( TIM_HandleTypeDef *htim) {
+//     if (htim -> Channel == HAL_TIM_ACTIVE_CHANNEL_1 ) {
+//     uint32_t current_capture = HAL_TIM_ReadCapturedValue (htim , TIM_CHANNEL_1 );
+//     period = current_capture - last_capture ;
+//     last_capture = current_capture;
+//     frequency = 1000/(period*7999);
+//   }
+//  }
 
-void Encrypter(void){
-char str[]= "Microcontrollers";
-int key = 10365;
-myPrintf("Original string: %s\r\n", str);
-for (int i = 0; i < strlen(str); i++) {
-    str[i] = str[i] + (key % 256);
 
-}
-myPrintf("Encrypted string: %s\r\n", str);
-char original_str[] = "Microcontrollers";
-for (int i = 0; i < strlen(str); i++) {
-    str[i] = str[i] - (key % 256);
-}
-if (strcmp(str, original_str) == 0) {
-    myPrintf("Decryption successful: %s\r\n", str);
-}
-else {
-    myPrintf("Decryption failed: %s\r\n", str);}
-}
-
-void MultiplyMatrices(int A[2][2], int B[2][2], int C[2][2]){
-  for(int i = 0; i < 2; i++){
-    for(int j = 0; j < 2; j++){
-      C[i][j] = 0;
-      for(int k = 0; k < 2; k++){
-        C[i][j] += A[i][k] * B[k][j];
-      }
+ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) 
+    {
+        if (is_first_capture) 
+        {
+            ic_val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+            is_first_capture = 0;
+        }
+        else 
+        {
+            ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+            
+            // Calculate difference, handling 16-bit counter rollover
+            if (ic_val2 > ic_val1) {
+                difference = ic_val2 - ic_val1;
+            } else {
+                difference = (0xFFFF - ic_val1) + ic_val2;
+            }
+            
+            // Calc Frequency: Clock is 1MHz (48MHz / 48), so F = 1,000,000 / Period
+            if (difference != 0) {
+                frequency = 1000 / (float)difference;
+            }
+            
+            is_first_capture = 1;
+        }
     }
-  }
 }
-
-void printMatrix(const char *name, int M[2][2]){
-  myPrintf("%s = \r\n", name);
-  for(int i = 0; i < 2; i++){
-    for(int j = 0; j < 2; j++){
-      myPrintf("%d ", M[i][j]);
-    }
-    myPrintf("\r\n");
-  }
-}
-
-void armstrong(void) { 
-  for (int num = 100; num <= 999; num++) {
-    // digit extraction 
-    int digit1 = num / 100; // hundreds digit 
-     int digit2 = (num / 10) % 10; // tens digit 
-     int digit3 = num % 10; // units digit
-     
-     // sum is the cube of extracted digits
-     int sum = (digit1 * digit1 * digit1) + (digit2 * digit2 * digit2) + (digit3 * digit3 * digit3); 
-     if (sum == num) {
-       myPrintf("Armstrong number: %d\r\n", num); } 
-      } 
-    }
-
 
 /* USER CODE END 0 */
 
@@ -162,12 +177,13 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-   HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -184,29 +200,14 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_SPI1_Init();
-  MX_USART2_UART_Init();
-  MX_USB_PCD_Init();
+  MX_TIM2_Init();
+  MX_USART1_UART_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-HAL_Delay(100);     
-//   int x = 42;
-//   int y = 3;
-//   myPrintf("The value of x is: %d\r\n", x);
-//   myPrintf("The value of y is: %d\r\n", y);
-// HAL_Delay(100); 
+  //HAL_TIM_Base_Start_IT(&htim2);
+  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
 
-// HAL_Init();
-// int a = 5;
-// int b = 10;
-// verifyIdentity(a, b);
-// int A[2][2] = {{1, 2}, {3, 4}};
-// int B[2][2] = {{5, 6}, {7, 8}};
-// int C[2][2];
-// MultiplyMatrices(A, B, C);
-// printMatrix("Matrix A", A);
-// printMatrix("Matrix B", B);
-// printMatrix("Matrix C = A * B", C);
-
-armstrong();
+  myPrintf("frequency is %d Hz\n\r", frequency);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -214,19 +215,15 @@ armstrong();
   while (1)
   {
     /* USER CODE END WHILE */
-    // Encrypter();
 
     /* USER CODE BEGIN 3 */
-  //   uint8_t str[] = "Hello, World! \r\n";
-  //   uint16_t length = sizeof(str) - 1;
-  //   HAL_UART_Transmit(&huart2, str, length, HAL_MAX_DELAY);
-  //   HAL_Delay(1000); 
+     // Print frequency to Terminal (baud 38400)
+    myPrintf("Frequency: %.2f Hz\r\n", frequency);
+
+    // HAL_GPIO_TogglePin(GPIOE,  LD7_Pin);
+    // delay_ms(1000);
+    
   }
-  // Delay for 1 second
-
-
-
-
   /* USER CODE END 3 */
 }
 
@@ -269,9 +266,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_USART2
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_USART1
                               |RCC_PERIPHCLK_I2C1;
-  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
   PeriphClkInit.USBClockSelection = RCC_USBCLKSOURCE_PLL;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
@@ -296,7 +293,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x2000090E;
+  hi2c1.Init.Timing = 0x00201D2B;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -369,68 +366,95 @@ static void MX_SPI1_Init(void)
 }
 
 /**
-  * @brief USART2 Initialization Function
+  * @brief TIM2 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USART2_UART_Init(void)
+static void MX_TIM2_Init(void)
 {
 
-  /* USER CODE BEGIN USART2_Init 0 */
+  /* USER CODE BEGIN TIM2_Init 0 */
 
-  /* USER CODE END USART2_Init 0 */
+  /* USER CODE END TIM2_Init 0 */
 
-  /* USER CODE BEGIN USART2_Init 1 */
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_IC_InitTypeDef sConfigIC = {0};
 
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 7999;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 5;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USART2_Init 2 */
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
+  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+  sConfigIC.ICFilter = 0;
+  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
 
-  /* USER CODE END USART2_Init 2 */
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
 /**
-  * @brief USB Initialization Function
+  * @brief USART1 Initialization Function
   * @param None
   * @retval None
   */
-static void MX_USB_PCD_Init(void)
+static void MX_USART1_UART_Init(void)
 {
 
-  /* USER CODE BEGIN USB_Init 0 */
+  /* USER CODE BEGIN USART1_Init 0 */
 
-  /* USER CODE END USB_Init 0 */
+  /* USER CODE END USART1_Init 0 */
 
-  /* USER CODE BEGIN USB_Init 1 */
+  /* USER CODE BEGIN USART1_Init 1 */
 
-  /* USER CODE END USB_Init 1 */
-  hpcd_USB_FS.Instance = USB;
-  hpcd_USB_FS.Init.dev_endpoints = 8;
-  hpcd_USB_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_FS.Init.phy_itface = PCD_PHY_EMBEDDED;
-  hpcd_USB_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_FS.Init.battery_charging_enable = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_FS) != HAL_OK)
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
   {
     Error_Handler();
   }
-  /* USER CODE BEGIN USB_Init 2 */
+  /* USER CODE BEGIN USART1_Init 2 */
 
-  /* USER CODE END USB_Init 2 */
+  /* USER CODE END USART1_Init 2 */
 
 }
 
