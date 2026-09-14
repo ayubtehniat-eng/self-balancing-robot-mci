@@ -19,12 +19,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-#include <string.h>
-#include <stdarg.h>
-#include <stdio.h>
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,8 +61,6 @@ uint32_t ic_val1 = 0;      // First capture timestamp
 uint32_t ic_val2 = 0;      // Second capture timestamp
 uint32_t difference = 0;   // The period (in timer ticks)
 uint8_t is_first_capture = 1; // Flag to track step 1 vs step 2
-float frequency = 0.0;     // The result
-
 
 /* USER CODE END PV */
 
@@ -136,36 +134,53 @@ void delay_ms(uint32_t ms)
 //  }
 
 
- void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+//  void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+// {
+//     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) 
+//     {
+//         if (is_first_capture) 
+//         {
+//             ic_val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+//             is_first_capture = 0;
+//         }
+//         else 
+//         {
+//             ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+            
+//             // Calculate difference, handling 16-bit counter rollover
+//             if (ic_val2 > ic_val1) {
+//                 difference = ic_val2 - ic_val1;
+//             } else {
+//                 difference = (0xFFFF - ic_val1) + ic_val2;
+//             }
+            
+//             // Calc Frequency: Clock is 1MHz (48MHz / 48), so F = 1,000,000 / Period
+//             if (difference != 0) {
+//                 frequency = 1000 / (float)difference;
+//             }
+            
+//             is_first_capture = 1;
+//         }
+//     }
+// }
+//float last_capture = 0.0f;
+//float frequency = 0.0f;
+
+
+volatile uint32_t last_capture = 0, period = 0;
+float frequency = 0.0f;
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) 
-    {
-        if (is_first_capture) 
-        {
-            ic_val1 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-            is_first_capture = 0;
-        }
-        else 
-        {
-            ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-            
-            // Calculate difference, handling 16-bit counter rollover
-            if (ic_val2 > ic_val1) {
-                difference = ic_val2 - ic_val1;
-            } else {
-                difference = (0xFFFF - ic_val1) + ic_val2;
-            }
-            
-            // Calc Frequency: Clock is 1MHz (48MHz / 48), so F = 1,000,000 / Period
-            if (difference != 0) {
-                frequency = 1000 / (float)difference;
-            }
-            
-            is_first_capture = 1;
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
+        uint32_t current_capture = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+        period = current_capture - last_capture;
+        last_capture = current_capture;
+        if (period != 0) {
+            frequency = 1000000.0f / (float)period;
         }
     }
 }
-
 /* USER CODE END 0 */
 
 /**
@@ -205,9 +220,12 @@ int main(void)
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
   //HAL_TIM_Base_Start_IT(&htim2);
+  // HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+
   HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
 
-  myPrintf("frequency is %d Hz\n\r", frequency);
+  //myPrintf("Frequency: %.2f Hz\r\n", frequency);
+  //myPrintf("frequency is %d Hz\n\r", frequency);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -215,11 +233,12 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+    myPrintf("Period = %lu ms, Frequency = %.2f Hz\r\n", period, frequency);
+    HAL_Delay(500);
     /* USER CODE BEGIN 3 */
      // Print frequency to Terminal (baud 38400)
-    myPrintf("Frequency: %.2f Hz\r\n", frequency);
-
+    //myPrintf("Frequency: %.2f Hz\r\n", frequency);
+//myPrintf("test");
     // HAL_GPIO_TogglePin(GPIOE,  LD7_Pin);
     // delay_ms(1000);
     
@@ -377,7 +396,6 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 0 */
 
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_IC_InitTypeDef sConfigIC = {0};
 
@@ -385,20 +403,11 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 7999;
+  htim2.Init.Prescaler = 47;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 5;
+  htim2.Init.Period = 65535;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
   if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
