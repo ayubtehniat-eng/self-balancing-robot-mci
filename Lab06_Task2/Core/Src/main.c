@@ -47,6 +47,7 @@ I2C_HandleTypeDef hi2c1;
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
 
@@ -64,6 +65,7 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USB_PCD_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 volatile uint32_t lastCapture = 0;
 volatile uint32_t period = 0;
@@ -74,7 +76,49 @@ volatile int flag = 0;
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+/* ---------- Motor ---------- */
+void Motor_Init(void) {
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+}
 
+void Motor_Forward(uint16_t duty) {          // duty: 0 to 999
+  HAL_GPIO_WritePin(IN1_GPIO_Port, IN1_Pin, GPIO_PIN_SET);    // D8 HIGH
+  HAL_GPIO_WritePin(IN2_GPIO_Port, IN2_Pin, GPIO_PIN_RESET);  // D12 LOW
+  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, duty);
+}
+
+/* ---------- Encoder (polling) ---------- */
+int Encoder_WaitFallingEdge(uint32_t timeout_ms) {
+  uint32_t start = HAL_GetTick();
+  while (HAL_GPIO_ReadPin(ENC_GPIO_Port, ENC_Pin) == GPIO_PIN_RESET)  // wait for HIGH
+    if (HAL_GetTick() - start > timeout_ms) return 0;
+  while (HAL_GPIO_ReadPin(ENC_GPIO_Port, ENC_Pin) == GPIO_PIN_SET)    // wait for drop to LOW
+    if (HAL_GetTick() - start > timeout_ms) return 0;
+  return 1;
+}
+
+uint32_t Encoder_GetTicks(void) {
+  if (!Encoder_WaitFallingEdge(100)) return 0;   // 1st falling edge
+  __HAL_TIM_SET_COUNTER(&htim2, 0);
+  HAL_TIM_Base_Start(&htim2);
+
+  if (!Encoder_WaitFallingEdge(100)) {           // 2nd falling edge
+    HAL_TIM_Base_Stop(&htim2);
+    return 0;
+  }
+  uint32_t ticks = __HAL_TIM_GET_COUNTER(&htim2);
+  HAL_TIM_Base_Stop(&htim2);
+  return ticks;
+}
+
+/* ---------- Calculations ---------- */
+float Calc_Frequency(uint32_t ticks) {
+  return TICK_HZ / ticks;
+}
+
+float Calc_RPM(float freq) {
+  return (60.0f * freq) / PPR;
+}
 
  void myPrintf(const char *fmt, ...){
     char buffer[100];
@@ -123,8 +167,11 @@ int main(void)
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   MX_USB_PCD_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+  // HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);.
+  Motor_Init();
+  Motor_Forward(600);   // 60% duty
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -135,15 +182,24 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
         
-  if (flag == 1) {
-  float f = (48000000.0f / 72.0f) / period;
-  float err = f / period;
-
-  myPrintf("f = %.2f +/- %.2f Hz\r\n", f, err);
-  flag = 0;
-}
-HAL_Delay(100);
+  uint32_t ticks = Encoder_GetTicks();
+  if (ticks > 0) {
+    float freq = Calc_Frequency(ticks);
+    float rpm  = Calc_RPM(freq);
+    myPrintf("f = %.2f Hz  RPM = %.2f\r\n", freq, rpm);
+  } else {
+    myPrintf("No pulses (motor stopped?)\r\n");
   }
+  HAL_Delay(200);
+//   if (flag == 1) {
+//   float f = (48000000.0f / 72.0f) / period;
+//   float err = f / period;
+
+//   myPrintf("f = %.2f +/- %.2f Hz\r\n", f, err);
+//   flag = 0;
+// }
+// HAL_Delay(100);
+//   }
   /* USER CODE END 3 */
 }
 
@@ -297,19 +353,24 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_IC_InitTypeDef sConfigIC = {0};
 
   /* USER CODE BEGIN TIM2_Init 1 */
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 71;
+  htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -319,17 +380,58 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
-  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 47;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 999;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -416,12 +518,16 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, CS_I2C_SPI_Pin|LD4_Pin|LD3_Pin|LD5_Pin
                           |LD7_Pin|LD9_Pin|LD10_Pin|LD8_Pin
                           |LD6_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_8|GPIO_PIN_12, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : DRDY_Pin MEMS_INT3_Pin MEMS_INT4_Pin MEMS_INT1_Pin
                            MEMS_INT2_Pin */
@@ -447,6 +553,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PD8 PD12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_12;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PD4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
