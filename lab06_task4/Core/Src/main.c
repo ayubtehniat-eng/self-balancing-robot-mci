@@ -35,7 +35,7 @@
 /* USER CODE BEGIN PD */
 #define SAMPLES     10
 #define PPR         330
-#define TICK_HZ     1000000.0f   // TIM2: 48 MHz / (47+1) = 1 MHz -> 1 us per tick
+#define TICK_HZ     1000000.0f   // TIM2: 48 MHz / (47+1) = 1 MHz
 #define TIMEOUT_MS  500
 /* USER CODE END PD */
 
@@ -78,6 +78,7 @@ static void MX_USB_PCD_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/* ---------- UART print ---------- */
 /* ---------- UART print ---------- */
 void myPrintf(const char *fmt, ...){
   char buffer[100];
@@ -152,7 +153,6 @@ int main(void)
 Encoder_Start();
 myPrintf("Task 4 started\r\n");
   /* USER CODE END 2 */
-HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -161,17 +161,18 @@ HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  //   if (ready == 1) {
-  // uint32_t avgPeriod = Encoder_GetAveragePeriod();
-  // float frequency = Calc_Frequency(avgPeriod);
-  // float rpm = Calc_RPM(frequency);
-  // myPrintf("Period: %lu us | Freq: %.2f Hz | RPM: %.2f\r\n", avgPeriod, frequency, rpm);
-  // ready = 0;                       // let the callback collect new samples
-  // } else if (Encoder_IsStopped()) {
-  //   myPrintf("No pulses - check encoder wiring\r\n");
-  // }
-  // HAL_Delay(500);
+    
+     if (ready == 1) {
+      uint32_t avgPeriod = Encoder_GetAveragePeriod();
+      float frequency = Calc_Frequency(avgPeriod);
+      float rpm = Calc_RPM(frequency);
+      myPrintf("Period: %lu us | Freq: %.2f Hz | RPM: %.2f\r\n", avgPeriod, frequency, rpm);
+      ready = 0;                       // collect a new batch
+    } else if (Encoder_IsStopped()) {
+      myPrintf("No pulses - check encoder wiring\r\n");
     }
+    HAL_Delay(500);
+  }
   /* USER CODE END 3 */
 }
 
@@ -325,6 +326,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_IC_InitTypeDef sConfigIC = {0};
 
@@ -337,6 +339,15 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
@@ -444,7 +455,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -476,12 +486,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PD0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
