@@ -171,7 +171,7 @@ myPrintf("Task 4 started\r\n");
     } else if (Encoder_IsStopped()) {
       myPrintf("No pulses - check encoder wiring\r\n");
     }
-    HAL_Delay(500);
+    //HAL_Delay(500);
   }
   /* USER CODE END 3 */
 }
