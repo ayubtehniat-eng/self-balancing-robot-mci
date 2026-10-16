@@ -1,0 +1,106 @@
+{
+	"configurations" : 
+	[
+		{
+			"abstractTargets" : 
+			[
+				{
+					"directoryIndex" : 1,
+					"id" : "stm32cubemx::@768a070a0fe75716b479",
+					"jsonFile" : "target-stm32cubemx-Debug-722f1f2fafa1242cb655.json",
+					"name" : "stm32cubemx",
+					"projectIndex" : 0
+				}
+			],
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Debug-b23a0b23c080df4d29ba.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.22"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"build" : "cmake/stm32cubemx",
+					"jsonFile" : "directory-cmake.stm32cubemx-Debug-6d71a4d457c1aee65da0.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.22"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "cmake/stm32cubemx",
+					"targetIndexes" : 
+					[
+						1
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1
+					],
+					"name" : "Lab07",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Lab07::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Lab07-Debug-3aa8ec0b473d4aab15e6.json",
+					"name" : "Lab07",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "STM32_Drivers::@768a070a0fe75716b479",
+					"jsonFile" : "target-STM32_Drivers-Debug-d2ef38aa1834ddfd4beb.json",
+					"name" : "STM32_Drivers",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/administrator/self-balancing-robot-mci/Lab07/build/Debug",
+		"source" : "/home/administrator/self-balancing-robot-mci/Lab07"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 11
+	}
+}

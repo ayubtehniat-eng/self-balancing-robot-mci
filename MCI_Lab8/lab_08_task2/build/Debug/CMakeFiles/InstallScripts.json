@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab_08_task2/build/Debug/cmake_install.cmake",
+		"/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab_08_task2/build/Debug/cmake/stm32cubemx/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
