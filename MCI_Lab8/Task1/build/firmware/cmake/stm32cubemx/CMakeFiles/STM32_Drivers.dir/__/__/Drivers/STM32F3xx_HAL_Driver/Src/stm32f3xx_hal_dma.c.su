@@ -1,0 +1,13 @@
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:863:13:DMA_CalcBaseAndBitshift	8	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:136:19:HAL_DMA_Init	16	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:198:19:HAL_DMA_DeInit	16	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:280:19:HAL_DMA_Start	20	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:327:19:HAL_DMA_Start_IT	20	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:383:19:HAL_DMA_Abort	0	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:427:19:HAL_DMA_Abort_IT	8	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:472:19:HAL_DMA_PollForTransfer	32	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:573:6:HAL_DMA_IRQHandler	12	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:665:19:HAL_DMA_RegisterCallback	0	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:716:19:HAL_DMA_UnRegisterCallback	0	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:792:22:HAL_DMA_GetState	0	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_dma.c:803:10:HAL_DMA_GetError	0	static

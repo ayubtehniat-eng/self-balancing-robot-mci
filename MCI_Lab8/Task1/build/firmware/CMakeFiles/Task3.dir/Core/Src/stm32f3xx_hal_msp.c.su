@@ -1,0 +1,7 @@
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Core/Src/stm32f3xx_hal_msp.c:62:6:HAL_MspInit	8	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Core/Src/stm32f3xx_hal_msp.c:87:6:HAL_I2C_MspInit	40	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Core/Src/stm32f3xx_hal_msp.c:124:6:HAL_I2C_MspDeInit	8	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Core/Src/stm32f3xx_hal_msp.c:155:6:HAL_SPI_MspInit	40	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Core/Src/stm32f3xx_hal_msp.c:193:6:HAL_SPI_MspDeInit	0	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Core/Src/stm32f3xx_hal_msp.c:223:6:HAL_PCD_MspInit	40	static
+/home/administrator/self-balancing-robot-mci/MCI_Lab8/Task1/Core/Src/stm32f3xx_hal_msp.c:260:6:HAL_PCD_MspDeInit	0	static
