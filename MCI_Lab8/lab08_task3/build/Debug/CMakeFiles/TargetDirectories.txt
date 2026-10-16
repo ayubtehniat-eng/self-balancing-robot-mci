@@ -1,6 +1,0 @@
-/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab08_task3/build/Debug/CMakeFiles/lab08_task3.dir
-/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab08_task3/build/Debug/CMakeFiles/edit_cache.dir
-/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab08_task3/build/Debug/CMakeFiles/rebuild_cache.dir
-/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab08_task3/build/Debug/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
-/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab08_task3/build/Debug/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
-/home/administrator/self-balancing-robot-mci/MCI_Lab8/lab08_task3/build/Debug/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
