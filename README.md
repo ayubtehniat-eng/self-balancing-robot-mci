@@ -1,14 +1,7 @@
 # Self-Balancing Robot - MCI Lab
 
-STM32F3 Discovery lab work for EE/CE 376L/332L.
+STM32F3 Discovery (STM32F303VC) lab work for EE/CE 376L/332L.
 
-## Building and flashing
-
-    ./flash.sh MCI_Lab8/Task1
-
-## Python setup
-The plotting scripts need the packages in `requirements.txt`:
-
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r requirements.txt
+Each `MCI_LabN` folder holds that lab's STM32CubeMX + CMake project.
+Labs with several tasks have one project per task, e.g. `MCI_Lab9/Task1`
+and `MCI_Lab9/Task2`.
