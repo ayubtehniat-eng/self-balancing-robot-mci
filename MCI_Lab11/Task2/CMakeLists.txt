@@ -67,3 +67,13 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
     # Add user defined libraries
 )
 target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -u _printf_float)
+# ---- Lab 11 Task 2 driver modules ----
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    Core/Src/uart_print.c
+    Core/Src/imu.c
+    Core/Src/tilt.c
+    Core/Src/pid.c
+    Core/Src/motor.c
+    Core/Src/balance.c
+)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE Core/Inc)
