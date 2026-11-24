@@ -19,6 +19,11 @@ void Balance_Init(I2C_HandleTypeDef *hi2c, SPI_HandleTypeDef *hspi,
    every DT seconds, so it contains no printing and no delays. */
 void Balance_Step(void);
 
+/* True while the controller is armed and driving the motors. It arms itself
+   once the robot has been held close to upright and steady, and disarms when
+   the robot falls past the cutoff. */
+uint8_t Balance_IsArmed(void);
+
 /* True when the ISR has produced a fresh set of values worth printing.
    Reading it clears the flag. */
 uint8_t Balance_PrintDue(void);

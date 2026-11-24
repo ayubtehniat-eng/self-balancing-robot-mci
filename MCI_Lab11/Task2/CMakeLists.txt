@@ -77,3 +77,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/balance.c
 )
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE Core/Inc)
+
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    Core/Src/uart_print.c
+    Core/Src/imu.c
+    Core/Src/tilt.c
+    Core/Src/pid.c
+    Core/Src/motor.c
+    Core/Src/balance.c)
+
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE Core/Inc)

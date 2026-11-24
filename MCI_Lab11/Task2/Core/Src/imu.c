@@ -28,7 +28,11 @@
 #define GYRO_ID_BLUE       0xD3         /* I3G4250D                          */
 #define GYRO_ID_GREEN      0xD4         /* L3GD20 on the green board         */
 #define GYRO_CTRL_REG1     0x20
-#define GYRO_CTRL_REG1_VAL 0x5F         /* 200 Hz, powered on, X/Y/Z enabled */
+/* 760 Hz output rate, powered on, X/Y/Z enabled. The working robot uses this
+   rather than 200 Hz: a higher output rate moves the gyroscope's internal
+   filter further out, so the rate reaching the D term lags the real motion
+   less. In a loop this fast, that lag is worth removing.                   */
+#define GYRO_CTRL_REG1_VAL 0xCF
 #define GYRO_CTRL_REG4     0x23
 #define GYRO_CTRL_REG4_VAL 0x10         /* +/-500 deg/s                      */
 #define GYRO_OUT_X_L       0x28
